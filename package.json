@@ -1,0 +1,19 @@
+{
+  "name": "magic-wizard",
+  "version": "0.0.1",
+  "private": true,
+  "main": "wizard.js",
+  "dependencies": {
+    "async": "^0.9.0",
+    "commander": "^2.3.0",
+    "inquirer": "^0.8.0",
+    "magic-git": "express-magic/magic-git",
+    "magic-log": "express-magic/magic-log",
+    "magic-xc": "express-magic/magic-xc",
+    "rimraf": "^2.2.8"
+  },
+  "repository": {
+    "type": "git",
+    "url": "http://github.com/express-magic/magic-wizard.git"
+  }
+}
