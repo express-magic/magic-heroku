@@ -2,7 +2,7 @@
   "name": "magic-heroku",
   "version": "0.0.1",
   "private": true,
-  "main": "wizard.js",
+  "main": "heroku.js",
   "dependencies": {
     "async": "^0.9.0",
     "commander": "^2.3.0",
