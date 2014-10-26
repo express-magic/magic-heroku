@@ -4,29 +4,31 @@ var fs       = require('fs')
   , log      = require('magic-log')
   , inquirer    = require('inquirer')
   , async    = require('async')
-  , xc       = require('magic-xc')
+  , XC       = require('magic-xc')
   , config   = require( path.join(process.cwd(), 'config') )
   , heroku   = {}
+  , remote   = {}
+  , xc       = new XC();
 ;
 
 heroku.add = function (args, cb) {
   
   async.waterfall([
-      check
-    , promptForRemote
-    , add
-    , push
+      remote.check
+    , remote.prompt
+    , remote.add
+    , remote.push
   ]
-  , cleanUp
+  , cb
   );
 }
 
-function check(cb) {
+remote.check = function(cb) {
   var cmd = 'git remote -v'
     , heroku = config.heroku
   ;
   if ( ! heroku || ! heroku.remote) {
-    log('heroku .remote not defined', 'error');
+    log('heroku.remote in config.js not defined', 'error');
   }
   
   var args = {
@@ -36,33 +38,32 @@ function check(cb) {
   cb(null, args);
 }
 
-function promptForRemote(args, cb) {
+remote.prompt = function (args, cb) {
   if ( args.remote) { return cb(null, args); }
 
   inquirer.prompt({
       name: 'remote'
     , message: 'Input heroku app name:'
   }, function (input) {
-    args.remote = input.remote;
-
+    args.remote = cleanInput(input.remote);
     cb(null, args);
   });
 }
 
-function add(args, cb) {
-  var cmd = 'git remote add heroku ' + args.remote;
-  xc(cmd, args, cb);
+function cleanInput(input) {
+  return input.replace('.git', '').replace('git@heroku.com:', '');
 }
 
-function push (args, cb) {
+remote.add = function (args, cb) {
+  var cmd = 'git remote add heroku git@heroku.com:' + args.remote + '.git';
+  xc(cmd, cb);
+}
+
+remote.push = function (args, cb) {
   var cmd = 'git push heroku master';
-  
-  xc(cmd, args, cb);
+  xc(cmd, cb);
 }
-function cleanUp(err, results) {
-  console.log('cleanUp called');
-  if(err) { log(err, 'error'); }
-  if(results) { log(results); }
-}
+
+heroku.remote = remote;
 
 module.exports = heroku;

@@ -1,5 +1,5 @@
 {
-  "name": "magic-wizard",
+  "name": "magic-heroku",
   "version": "0.0.1",
   "private": true,
   "main": "wizard.js",
@@ -14,6 +14,6 @@
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/express-magic/magic-wizard.git"
+    "url": "http://github.com/express-magic/magic-heroku.git"
   }
 }
