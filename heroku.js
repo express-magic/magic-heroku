@@ -6,44 +6,49 @@ var fs       = require('fs')
   , inquirer = require('inquirer')
   , async    = require('async')
   , XC       = require('magic-xc')
+  , xc       = new XC()
   , config   = require( path.join(process.cwd(), 'config') )
-  , heroku   = {}
-  , remote   = {}
-  , xc       = new XC();
+  , h        = {
+      remote: {}
+  }
 ;
 
-heroku.add = function (args, cb) {
-  
+h.deploy = function (args, cb) {
+  if ( ! cb && typeof args === 'function') {
+    cb = args;
+    args = {};
+  }
+  h.args = args;
+
   async.waterfall([
-      remote.check
-    , remote.prompt
-    , remote.add
-    , remote.push
+      h.remote.check
+    , h.remote.prompt
+    , h.remote.add
+    , h.remote.push
   ]
   , cb
   );
 }
 
-remote.check = function(cb) {
-  var cmd = 'git remote -v';
-
+h.remote.check = function(cb) {
+  var cmd = 'git remote -v'
+    , args = h.args
+  ;
   if ( ! config.heroku || ! config.heroku.remote) {
-    log('heroku.remote in config.js not defined', 'error');
+    return cb(null, args);
   }
-  
-  var args = {
-    remote: config.heroku.remote
-  };
+
+  args.remote = config.heroku.remote;
 
   cb(null, args);
 }
 
-remote.prompt = function (args, cb) {
-  if ( args.remote) { return cb(null, args); }
-
+h.remote.prompt = function (args, cb) {
+//  if ( args.remote) { return cb(null, args); }
   inquirer.prompt({
       name: 'remote'
     , message: 'Input heroku app name:'
+    , default: args.remote
   }, function (input) {
     args.remote = cleanInput(input.remote);
     cb(null, args);
@@ -54,16 +59,31 @@ function cleanInput(input) {
   return input.replace('.git', '').replace('git@heroku.com:', '');
 }
 
-remote.add = function (args, cb) {
+h.remote.add = function (args, cb) {
   var cmd = 'git remote add heroku git@heroku.com:' + args.remote + '.git';
-  xc(cmd, cb);
+
+  xc(cmd, function (err, args) {
+    if ( err.code === 128) {
+      log('remote exists, continuing');
+      return cb(null, args);
+    }
+    cb(err, args);
+  });
 }
 
-remote.push = function (args, cb) {
+
+h.remote.push = function (args, cb) {
   var cmd = 'git push heroku master';
-  xc(cmd, cb);
+  log('heroku.remote.push cmd: ' + cmd);
+  xc(cmd, function (err, args) {
+    if ( err.indexOf('Fetching repository, done.') >= 0 ) {
+      log('deploy target up to date.', 'success');
+      cb(null, args);
+    }
+    
+    cb(err, args);
+  });
 }
 
-heroku.remote = remote;
 
-module.exports = heroku;
+module.exports = h;
