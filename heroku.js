@@ -2,7 +2,7 @@
 
 var fs       = require('fs')
   , log      = require('magic-log')
-  , inquirer    = require('inquirer')
+  , inquirer = require('inquirer')
   , async    = require('async')
   , XC       = require('magic-xc')
   , config   = require( path.join(process.cwd(), 'config') )
