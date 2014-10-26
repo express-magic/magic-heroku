@@ -2,6 +2,7 @@
 
 var fs       = require('fs')
   , log      = require('magic-log')
+  , path     = require('path')
   , inquirer = require('inquirer')
   , async    = require('async')
   , XC       = require('magic-xc')
@@ -24,15 +25,14 @@ heroku.add = function (args, cb) {
 }
 
 remote.check = function(cb) {
-  var cmd = 'git remote -v'
-    , heroku = config.heroku
-  ;
-  if ( ! heroku || ! heroku.remote) {
+  var cmd = 'git remote -v';
+
+  if ( ! config.heroku || ! config.heroku.remote) {
     log('heroku.remote in config.js not defined', 'error');
   }
   
   var args = {
-    remote: heroku.remote;
+    remote: config.heroku.remote
   };
 
   cb(null, args);
