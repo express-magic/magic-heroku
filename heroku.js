@@ -39,7 +39,7 @@ function prepare(cb) {
 
 h.remote.prepare.choices = function prepareChooseRemotes(args, cb) {
   args.choices = args.remotes;
-  args.message = 'Which remote do you want to use for staging?';
+  args.message = 'Which remote do you want to use to deploy to?';
   args.var     = 'remote'
 
   cb(null, args);
