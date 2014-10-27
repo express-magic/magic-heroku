@@ -9,6 +9,7 @@
     "inquirer": "^0.8.0",
     "magic-git": "express-magic/magic-git",
     "magic-log": "express-magic/magic-log",
+    "magic-prompt": "express-magic/magic-prompt",
     "magic-xc": "express-magic/magic-xc",
     "rimraf": "^2.2.8"
   },

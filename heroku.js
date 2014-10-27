@@ -5,24 +5,27 @@ var fs       = require('fs')
   , path     = require('path')
   , inquirer = require('inquirer')
   , async    = require('async')
+  , prompt   = require('magic-prompt')
   , XC       = require('magic-xc')
   , xc       = new XC()
   , config   = require( path.join(process.cwd(), 'config') )
   , h        = {
-      remote: {}
+    remote: {
+      prepare: {}
+    }
   }
 ;
 
-h.deploy = function (args, cb) {
-  if ( ! cb && typeof args === 'function') {
-    cb = args;
-    args = {};
-  }
-  h.args = args;
-
+h.deploy = function deploy(cb) {
+  //this will be the place to hook in other deploy possibilities,
+  //nodejitsu comes to mind.
+  
   async.waterfall([
-      h.remote.check
-    , h.remote.prompt
+      prepare
+    , h.remote.find
+    , h.remote.prepare.choices
+    , prompt.choice
+    , h.remote.prepare.prompt
     , h.remote.add
     , h.remote.push
   ]
@@ -30,60 +33,81 @@ h.deploy = function (args, cb) {
   );
 }
 
-h.remote.check = function(cb) {
-  var cmd = 'git remote -v'
-    , args = h.args
-  ;
-  if ( ! config.heroku || ! config.heroku.remote) {
-    return cb(null, args);
-  }
+function prepare(cb) {
+  cb(null,{});
+}
 
-  args.remote = config.heroku.remote;
+h.remote.prepare.choices = function prepareChooseRemotes(args, cb) {
+  args.choices = args.remotes;
+  args.message = 'Which remote do you want to use for staging?';
+  args.var     = 'remote'
 
   cb(null, args);
 }
 
-h.remote.prompt = function (args, cb) {
-//  if ( args.remote) { return cb(null, args); }
-  inquirer.prompt({
-      name: 'remote'
-    , message: 'Input heroku app name:'
-    , default: args.remote
-  }, function (input) {
-    args.remote = cleanInput(input.remote);
+h.remote.prepare.prompt = function prepareRemotePrompt(args, cb) {
+
+  if ( args.remote && args.remote !== 'none') { return cb(null, args); }
+
+  args.testfor = 'none';
+  args.var = 'newRemote';
+  args.message = 'Name the new remote (production or staging preferred)'
+
+  prompt.input(args, cb);
+}
+
+h.remote.add = function addRemote(args, cb) {
+  if ( args.remote && args.remote !== 'none' ) { return cb(null, args); }
+
+  if ( ! args.newRemote ) {
+    return cb('addRemote needs a remote name');
+  }
+
+  log('args.remote in addRemote = ' + args.newRemote);
+
+  var cmd = 'git remote add ' + args.newRemote;
+  log('addRemote called with cmd: ' + cmd);
+  args.remote = args.newRemote;
+  xc(cmd, args, cb);
+}
+
+h.remote.push = function pushRemote(args, cb) {
+  if ( ! args.remote ) { return cb('Remote not defined in pushRemote'); }
+  var cmd = 'git push ' + args.remote + ' master';
+  log('pushRemote called with cmd: ' + cmd);
+  xc(cmd, args, cb);
+}
+
+h.remote.find = function findRemotes(args, cb) {
+  var cmd = 'git remote -v';
+
+  xc(cmd, args, function (err, results) {
+console.log('results =', results);
+    var lines = results.std.stdout.split('\n')
+      , remotes = []
+    ;
+
+    for(var k in lines) {
+      if ( lines.hasOwnProperty(k) ) {
+        var line = lines[k];
+
+        if( line.indexOf('(fetch)') >= 0 ) {
+          var lineArray = line.split('\t')
+            , remote = {
+                name: lineArray[0]
+              , url: lineArray[1]
+            }
+          ;
+          if ( remote.name !== 'origin' ) {
+            remotes.push(remote);
+          }
+        }
+      }
+    }
+    args.remotes = remotes;
+
     cb(null, args);
   });
 }
-
-function cleanInput(input) {
-  return input.replace('.git', '').replace('git@heroku.com:', '');
-}
-
-h.remote.add = function (args, cb) {
-  var cmd = 'git remote add heroku git@heroku.com:' + args.remote + '.git';
-
-  xc(cmd, function (err, args) {
-    if ( err.code === 128) {
-      log('remote exists, continuing');
-      return cb(null, args);
-    }
-    cb(err, args);
-  });
-}
-
-
-h.remote.push = function (args, cb) {
-  var cmd = 'git push heroku master';
-  log('heroku.remote.push cmd: ' + cmd);
-  xc(cmd, function (err, args) {
-    if ( err.indexOf('Fetching repository, done.') >= 0 ) {
-      log('deploy target up to date.', 'success');
-      cb(null, args);
-    }
-    
-    cb(err, args);
-  });
-}
-
 
 module.exports = h;
